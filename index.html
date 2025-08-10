@@ -1,0 +1,3138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced JS Security Analyzer - Pro Bug Bounty Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ff88;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.85);
+            border: 2px solid #00ff88;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3), inset 0 0 50px rgba(0, 255, 136, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+            font-size: 2.8rem;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(0, 255, 136, 0.8); }
+            to { text-shadow: 0 0 30px rgba(0, 255, 136, 1), 0 0 40px rgba(0, 255, 136, 0.8); }
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #888;
+            font-size: 1.2rem;
+            background: linear-gradient(45deg, #00ff88, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            background: rgba(0, 0, 0, 0.3);
+            border: none;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            margin-right: 5px;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .tab.active {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            border-bottom: 2px solid #00ff88;
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(0, 255, 136, 0.05);
+            color: #ccc;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-section {
+            background: linear-gradient(135deg, rgba(0, 40, 20, 0.3), rgba(0, 60, 30, 0.2));
+            border: 2px dashed #00ff88;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(from 0deg, transparent, rgba(0, 255, 136, 0.1), transparent);
+            animation: rotate 4s linear infinite;
+            z-index: 0;
+        }
+
+        .upload-section > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        @keyframes rotate {
+            to { transform: rotate(360deg); }
+        }
+
+        .upload-section:hover {
+            background: linear-gradient(135deg, rgba(0, 40, 20, 0.5), rgba(0, 60, 30, 0.3));
+            box-shadow: 0 0 25px rgba(0, 255, 136, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #00ff88;
+            border-radius: 10px;
+            color: #00ff88;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .batch-upload {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #4ecdc4;
+        }
+
+        .analysis-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .option-group {
+            background: linear-gradient(135deg, rgba(0, 40, 20, 0.2), rgba(0, 20, 40, 0.2));
+            border: 1px solid #00ff88;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .option-group:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.2);
+        }
+
+        .option-group h3 {
+            color: #00ff88;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .severity-badge {
+            background: #ff4757;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .severity-badge.medium { background: #ffa502; }
+        .severity-badge.low { background: #2ed573; }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .checkbox-container:hover {
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            margin-right: 12px;
+            transform: scale(1.3);
+            accent-color: #00ff88;
+        }
+
+        .checkbox-container label {
+            cursor: pointer;
+            color: #ccc;
+            transition: color 0.3s ease;
+            flex: 1;
+        }
+
+        .checkbox-container:hover label {
+            color: #00ff88;
+        }
+
+        .pattern-description {
+            font-size: 0.85rem;
+            color: #666;
+            margin-left: 30px;
+            font-style: italic;
+        }
+
+        .advanced-options {
+            background: rgba(0, 20, 40, 0.3);
+            border: 1px solid #4ecdc4;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .custom-pattern {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #555;
+            border-radius: 8px;
+            color: #00ff88;
+            font-family: inherit;
+            margin-top: 10px;
+            resize: vertical;
+            min-height: 40px;
+        }
+
+        .action-buttons {
+            text-align: center;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #00ff88, #00cc6a);
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn.secondary {
+            background: linear-gradient(45deg, #ff6b35, #ff8e53);
+        }
+
+        .btn.danger {
+            background: linear-gradient(45deg, #ff4757, #ff6b7a);
+        }
+
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 25px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #4ecdc4, #00ff88);
+            background-size: 200% 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #000;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .results-section {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff88;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #00ff88;
+            padding-bottom: 15px;
+        }
+
+        .risk-assessment {
+            background: linear-gradient(135deg, rgba(255, 71, 87, 0.1), rgba(255, 165, 2, 0.1));
+            border: 1px solid #ff4757;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .risk-level {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .risk-level.high { color: #ff4757; }
+        .risk-level.medium { color: #ffa502; }
+        .risk-level.low { color: #2ed573; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(0, 40, 20, 0.3);
+            border: 1px solid #00ff88;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .stat-label {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 20px;
+        }
+
+        .result-category {
+            background: linear-gradient(135deg, rgba(0, 40, 20, 0.2), rgba(0, 20, 40, 0.2));
+            border: 1px solid #00ff88;
+            border-radius: 12px;
+            padding: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .result-category:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.2);
+        }
+
+        .category-title {
+            color: #00ff88;
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .count-badge {
+            background: #00ff88;
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .result-list {
+            max-height: 350px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+        }
+
+        .result-item {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border-left: 4px solid #00ff88;
+            word-break: break-all;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .result-item:hover {
+            background: rgba(0, 255, 136, 0.1);
+            transform: translateX(5px);
+        }
+
+        .severity-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2ed573;
+        }
+
+        .severity-indicator.medium { background: #ffa502; }
+        .severity-indicator.high { background: #ff4757; }
+
+        .export-options {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .filter-section {
+            background: rgba(0, 20, 40, 0.3);
+            border: 1px solid #4ecdc4;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .filter-input {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #4ecdc4;
+            border-radius: 5px;
+            color: #4ecdc4;
+            font-family: inherit;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid #4ecdc4;
+            color: #4ecdc4;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        .copy-btn:hover {
+            background: rgba(76, 205, 196, 0.1);
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #00ff88, #4ecdc4);
+            border-radius: 5px;
+        }
+
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff88;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            h1 { font-size: 2rem; }
+            .analysis-options { grid-template-columns: 1fr; }
+            .results-grid { grid-template-columns: 1fr; }
+            .action-buttons { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛡️ Advanced JS Security Analyzer</h1>
+        <div class="subtitle">Professional Bug Bounty Edition - Enhanced Pattern Detection & Risk Assessment</div>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="analyze">🔍 Analyze</button>
+            <button class="tab" data-tab="patterns">🎯 Custom Patterns</button>
+            <button class="tab" data-tab="results">📊 Results</button>
+            <button class="tab" data-tab="export">📤 Export</button>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button id="analyzeBtn" class="btn" disabled>🚀 Start Deep Analysis</button>
+            <button id="quickScanBtn" class="btn secondary" disabled>⚡ Quick Scan</button>
+            <button id="clearBtn" class="btn danger">🗑️ Clear All</button>
+        </div>
+
+        <!-- Progress Container -->
+        <div id="progressContainer" class="progress-container">
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+                <div id="progressText" class="progress-text">0%</div>
+            </div>
+            <div id="progressStatus" style="text-align: center; margin-top: 10px; color: #4ecdc4;"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="results-section">
+            <div class="results-header">
+                <h2>📊 Security Analysis Results</h2>
+                <div class="export-options">
+                    <button id="downloadBtn" class="btn secondary">💾 Download Report</button>
+                    <button id="shareBtn" class="btn secondary">📤 Share Results</button>
+                </div>
+            </div>
+
+            <!-- Risk Assessment -->
+            <div id="riskAssessment" class="risk-assessment">
+                <div class="risk-level high" id="riskLevel">🚨 ANALYZING...</div>
+                <div id="riskDescription">Security assessment in progress...</div>
+                <div id="riskFactors" style="margin-top: 10px;"></div>
+            </div>
+
+            <!-- Statistics Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalFindings">0</div>
+                    <div class="stat-label">Total Findings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="highSeverity">0</div>
+                    <div class="stat-label">High Severity</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="mediumSeverity">0</div>
+                    <div class="stat-label">Medium Severity</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="lowSeverity">0</div>
+                    <div class="stat-label">Low Severity</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="filesScanned">0</div>
+                    <div class="stat-label">Files Scanned</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="linesOfCode">0</div>
+                    <div class="stat-label">Lines of Code</div>
+                </div>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <input type="text" id="resultsFilter" class="filter-input" placeholder="🔍 Filter results by keyword, severity, or category...">
+            </div>
+
+            <!-- Results Grid -->
+            <div id="resultsGrid" class="results-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        let analysisResults = {};
+        let scannedFiles = [];
+        let currentAnalysisId = null;
+        
+        // Enhanced pattern definitions
+        const patterns = {
+            slack: [
+                'xoxb-[0-9]{13}-[0-9]{13}-[a-zA-Z0-9]{24}',
+                'xoxp-[0-9]{13}-[0-9]{13}-[a-zA-Z0-9]{24}',
+                'xoxa-2-[0-9]{13}-[0-9]{13}-[a-zA-Z0-9]{24}',
+                'xoxr-[0-9]{13}-[0-9]{13}-[a-zA-Z0-9]{24}'
+            ],
+            github: [
+                'ghp_[a-zA-Z0-9]{36}',
+                'gho_[a-zA-Z0-9]{36}',
+                'ghu_[a-zA-Z0-9]{36}',
+                'ghs_[a-zA-Z0-9]{36}',
+                'ghr_[a-zA-Z0-9]{36}'
+            ],
+            aws: [
+                'AKIA[0-9A-Z]{16}',
+                'ASIA[0-9A-Z]{16}',
+                'ABIA[0-9A-Z]{16}',
+                'ACCA[0-9A-Z]{16}'
+            ],
+            discord: [
+                '[MN][A-Za-z\\d]{23}\\.[\\w-]{6}\\.[\\w-]{27}',
+                'mfa\\.[\\w-]{84}'
+            ],
+            telegram: [
+                '[0-9]{8,10}:[a-zA-Z0-9_-]{35}'
+            ],
+            twitter: [
+                '[1-9][0-9]+-[0-9a-zA-Z]{40}',
+                '[a-zA-Z0-9]{25}',
+                '[a-zA-Z0-9]{50}'
+            ]
+        };
+
+        // Severity definitions
+        const severityMap = {
+            apiKeys: 'high', credentials: 'high', jwt: 'high', oauth: 'high', crypto: 'high',
+            payment: 'high', pii: 'high', xss: 'high', sqli: 'high', pathTraversal: 'high', csrf: 'high',
+            urls: 'medium', apis: 'medium', websockets: 'medium', domains: 'medium',
+            database: 'medium', internal: 'medium', cloud: 'medium', docker: 'medium',
+            emails: 'medium', phones: 'medium',
+            debug: 'low', comments: 'low', sourcemaps: 'low', errors: 'low'
+        };
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        // If DOM is already loaded, initialize immediately
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+
+        function initializeApp() {
+            // DOM Elements
+            const fileInput = document.getElementById('fileInput');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const quickScanBtn = document.getElementById('quickScanBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const progressStatus = document.getElementById('progressStatus');
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsGrid = document.getElementById('resultsGrid');
+            const customEnabled = document.getElementById('customEnabled');
+            const customPattern = document.getElementById('customPattern');
+            const resultsFilter = document.getElementById('resultsFilter');
+
+            // Check if required elements exist
+            if (!fileInput || !analyzeBtn || !quickScanBtn || !clearBtn) {
+                console.error('Required DOM elements not found');
+                return;
+            }
+
+            // Tab functionality
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const targetTab = e.target.dataset.tab;
+                    switchTab(targetTab);
+                });
+            });
+
+            // Event Listeners
+            fileInput.addEventListener('change', handleFileSelect);
+            analyzeBtn.addEventListener('click', () => startAnalysis(false));
+            quickScanBtn.addEventListener('click', () => startAnalysis(true));
+            clearBtn.addEventListener('click', clearAll);
+            
+            // Add download button event listener
+            const downloadBtn = document.getElementById('downloadBtn');
+            const shareBtn = document.getElementById('shareBtn');
+            
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', () => exportResults('txt'));
+            }
+            
+            if (shareBtn) {
+                shareBtn.addEventListener('click', shareResults);
+            }
+            
+            if (customEnabled) {
+                customEnabled.addEventListener('change', toggleCustomPattern);
+            }
+            
+            if (resultsFilter) {
+                resultsFilter.addEventListener('input', filterResults);
+            }
+
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', handleKeyboardShortcuts);
+
+            console.log('🛡️ Advanced JS Security Analyzer initialized successfully');
+            console.log('💡 Keyboard shortcuts: Ctrl+O (Open), Ctrl+R (Analyze), Ctrl+Q (Quick Scan), Ctrl+K (Clear)');
+        }
+
+        function switchTab(tabName) {
+            // Update active tab
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            const targetTab = document.querySelector(`[data-tab="${tabName}"]`);
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+            
+            // Update active content
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            const targetContent = document.getElementById(tabName);
+            if (targetContent) {
+                targetContent.classList.add('active');
+            }
+        }
+
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+
+            scannedFiles = files;
+            updateFileInfo(files);
+            
+            // Enable analyze buttons
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const quickScanBtn = document.getElementById('quickScanBtn');
+            
+            if (analyzeBtn) analyzeBtn.disabled = false;
+            if (quickScanBtn) quickScanBtn.disabled = false;
+        }
+
+        function updateFileInfo(files) {
+            const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+            const supportedFiles = files.filter(file => 
+                /\.(js|json|ts|jsx|vue|min\.js)$/i.test(file.name)
+            );
+
+            console.log(`Selected ${files.length} files (${supportedFiles.length} supported)`);
+            console.log(`Total size: ${formatFileSize(totalSize)}`);
+        }
+
+        function toggleCustomPattern() {
+            const customPattern = document.getElementById('customPattern');
+            const customEnabled = document.getElementById('customEnabled');
+            
+            if (customPattern && customEnabled) {
+                customPattern.disabled = !customEnabled.checked;
+                if (customEnabled.checked) {
+                    customPattern.focus();
+                }
+            }
+        }
+
+        function addPattern(type) {
+            if (!patterns[type]) return;
+            
+            const textarea = document.getElementById('customPattern');
+            const customEnabledCheckbox = document.getElementById('customEnabled');
+            
+            if (!textarea || !customEnabledCheckbox) return;
+            
+            const currentValue = textarea.value.trim();
+            const newPatterns = patterns[type].join('\n');
+            
+            textarea.value = currentValue ? currentValue + '\n' + newPatterns : newPatterns;
+            customEnabledCheckbox.checked = true;
+            textarea.disabled = false;
+        }
+
+        async function startAnalysis(isQuickScan = false) {
+            if (scannedFiles.length === 0) return;
+
+            currentAnalysisId = Date.now().toString();
+            
+            // Show progress
+            progressContainer.style.display = 'block';
+            analyzeBtn.disabled = true;
+            quickScanBtn.disabled = true;
+            
+            const analysisType = isQuickScan ? 'Quick Scan' : 'Deep Analysis';
+            updateProgress(0, `Starting ${analysisType}...`);
+
+            try {
+                analysisResults = {
+                    metadata: {
+                        analysisId: currentAnalysisId,
+                        timestamp: new Date().toISOString(),
+                        type: analysisType,
+                        filesCount: scannedFiles.length,
+                        totalSize: scannedFiles.reduce((sum, file) => sum + file.size, 0)
+                    },
+                    findings: {},
+                    statistics: {},
+                    riskAssessment: {}
+                };
+
+                let processedFiles = 0;
+                const totalFiles = scannedFiles.length;
+
+                for (const file of scannedFiles) {
+                    updateProgress(
+                        (processedFiles / totalFiles) * 90,
+                        `Analyzing ${file.name}...`
+                    );
+
+                    const content = await readFileContent(file);
+                    const fileResults = await analyzeFileContent(content, file.name, isQuickScan);
+                    
+                    // Merge results
+                    Object.keys(fileResults).forEach(category => {
+                        if (!analysisResults.findings[category]) {
+                            analysisResults.findings[category] = [];
+                        }
+                        analysisResults.findings[category] = [
+                            ...analysisResults.findings[category],
+                            ...fileResults[category].map(finding => ({
+                                ...finding,
+                                file: file.name,
+                                timestamp: new Date().toISOString()
+                            }))
+                        ];
+                    });
+
+                    processedFiles++;
+                }
+
+                updateProgress(95, 'Generating risk assessment...');
+                
+                // Generate statistics and risk assessment
+                generateStatistics();
+                generateRiskAssessment();
+                
+                updateProgress(100, 'Analysis complete!');
+                
+                // Display results
+                displayResults();
+                resultsSection.style.display = 'block';
+                switchTab('results');
+                resultsSection.scrollIntoView({ behavior: 'smooth' });
+
+            } catch (error) {
+                console.error('Analysis error:', error);
+                updateProgress(0, `Error: ${error.message}`);
+            } finally {
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                    analyzeBtn.disabled = false;
+                    quickScanBtn.disabled = false;
+                }, 2000);
+            }
+        }
+
+        function readFileContent(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = e => reject(new Error('Failed to read file'));
+                reader.readAsText(file);
+            });
+        }
+
+        function updateProgress(percent, status) {
+            progressFill.style.width = percent + '%';
+            progressText.textContent = Math.round(percent) + '%';
+            progressStatus.textContent = status;
+        }
+
+        async function analyzeFileContent(content, fileName, isQuickScan) {
+            if (!content || typeof content !== 'string') {
+                console.warn(`Invalid content for file: ${fileName}`);
+                return {};
+            }
+            
+            const results = {};
+            const deobfuscate = document.getElementById('deobfuscate')?.checked || false;
+            const deepScan = document.getElementById('deepScan')?.checked && !isQuickScan;
+            
+            // Preprocess content
+            let processedContent = content;
+            if (deobfuscate) {
+                processedContent = attemptDeobfuscation(content);
+            }
+
+            // Core analysis functions with safe execution
+            try {
+                if (document.getElementById('urls')?.checked) {
+                    results.urls = extractUrls(processedContent) || [];
+                }
+
+                if (document.getElementById('apis')?.checked) {
+                    results.apis = extractApiEndpoints(processedContent) || [];
+                }
+
+                if (document.getElementById('websockets')?.checked) {
+                    results.websockets = extractWebSockets(processedContent) || [];
+                }
+
+                if (document.getElementById('domains')?.checked) {
+                    results.domains = extractDomains(processedContent) || [];
+                }
+
+                if (document.getElementById('apiKeys')?.checked) {
+                    results.apiKeys = extractApiKeys(processedContent) || [];
+                }
+
+                if (document.getElementById('credentials')?.checked) {
+                    results.credentials = extractCredentials(processedContent) || [];
+                }
+
+                if (document.getElementById('jwt')?.checked) {
+                    results.jwt = extractJwtTokens(processedContent) || [];
+                }
+
+                if (document.getElementById('oauth')?.checked) {
+                    results.oauth = extractOAuthTokens(processedContent) || [];
+                }
+
+                if (document.getElementById('crypto')?.checked) {
+                    results.crypto = extractCryptoKeys(processedContent) || [];
+                }
+
+                if (document.getElementById('payment')?.checked) {
+                    results.payment = extractPaymentKeys(processedContent) || [];
+                }
+
+                if (document.getElementById('pii')?.checked) {
+                    results.pii = extractPII(processedContent) || [];
+                }
+
+                if (document.getElementById('emails')?.checked) {
+                    results.emails = extractEmails(processedContent) || [];
+                }
+
+                if (document.getElementById('phones')?.checked) {
+                    results.phones = extractPhoneNumbers(processedContent) || [];
+                }
+
+                if (document.getElementById('database')?.checked) {
+                    results.database = extractDatabaseConnections(processedContent) || [];
+                }
+
+                if (document.getElementById('internal')?.checked) {
+                    results.internal = extractInternalReferences(processedContent) || [];
+                }
+
+                if (document.getElementById('cloud')?.checked) {
+                    results.cloud = extractCloudConfigurations(processedContent) || [];
+                }
+
+                if (document.getElementById('docker')?.checked) {
+                    results.docker = extractDockerReferences(processedContent) || [];
+                }
+
+                if (document.getElementById('debug')?.checked) {
+                    results.debug = extractDebugInfo(processedContent) || [];
+                }
+
+                if (document.getElementById('comments')?.checked) {
+                    results.comments = extractComments(processedContent) || [];
+                }
+
+                if (document.getElementById('sourcemaps')?.checked) {
+                    results.sourcemaps = extractSourceMaps(processedContent) || [];
+                }
+
+                if (document.getElementById('errors')?.checked) {
+                    results.errors = extractErrorMessages(processedContent) || [];
+                }
+
+                if (document.getElementById('xss')?.checked) {
+                    results.xss = extractXSSPatterns(processedContent) || [];
+                }
+
+                if (document.getElementById('sqli')?.checked) {
+                    results.sqli = extractSQLiPatterns(processedContent) || [];
+                }
+
+                if (document.getElementById('pathTraversal')?.checked) {
+                    results.pathTraversal = extractPathTraversalPatterns(processedContent) || [];
+                }
+
+                if (document.getElementById('csrf')?.checked) {
+                    results.csrf = extractCSRFPatterns(processedContent) || [];
+                }
+
+                const customEnabled = document.getElementById('customEnabled');
+                const customPattern = document.getElementById('customPattern');
+                if (customEnabled?.checked && customPattern?.value.trim()) {
+                    results.custom = extractCustomPatterns(processedContent, customPattern.value) || [];
+                }
+
+                // Filter false positives if enabled
+                if (document.getElementById('falsePositiveFilter')?.checked) {
+                    Object.keys(results).forEach(category => {
+                        results[category] = filterFalsePositives(results[category], category);
+                    });
+                }
+
+            } catch (error) {
+                console.error(`Error analyzing file ${fileName}:`, error);
+                throw new Error(`Analysis failed for ${fileName}: ${error.message}`);
+            }
+
+            return results;
+        }
+
+        // Enhanced extraction functions
+        function attemptDeobfuscation(content) {
+            // Basic deobfuscation techniques
+            let deobfuscated = content;
+            
+            // Decode common encodings
+            try {
+                // Base64 patterns
+                deobfuscated = deobfuscated.replace(
+                    /atob\s*\(\s*['"`]([A-Za-z0-9+/=]+)['"`]\s*\)/g,
+                    (match, encoded) => {
+                        try {
+                            return `"${atob(encoded)}"`;
+                        } catch {
+                            return match;
+                        }
+                    }
+                );
+
+                // URL decode
+                deobfuscated = deobfuscated.replace(
+                    /decodeURIComponent\s*\(\s*['"`]([^'"`]+)['"`]\s*\)/g,
+                    (match, encoded) => {
+                        try {
+                            return `"${decodeURIComponent(encoded)}"`;
+                        } catch {
+                            return match;
+                        }
+                    }
+                );
+
+                // Hex decode
+                deobfuscated = deobfuscated.replace(
+                    /\\x([0-9a-fA-F]{2})/g,
+                    (match, hex) => String.fromCharCode(parseInt(hex, 16))
+                );
+
+            } catch (error) {
+                console.warn('Deobfuscation error:', error);
+            }
+            
+            return deobfuscated;
+        }
+
+        function extractWebSockets(content) {
+            const patterns = [
+                /wss?:\/\/[^\s"'`>)]+/gi,
+                /new\s+WebSocket\s*\(\s*['"`]([^'"`]+)['"`]/gi,
+                /\.connect\s*\(\s*['"`](wss?:\/\/[^'"`]+)['"`]/gi
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractOAuthTokens(content) {
+            const patterns = [
+                /(client_secret|client_id)['"\s]*[:=]['"\s]*([a-zA-Z0-9_-]{10,})/gi,
+                /(access_token|refresh_token)['"\s]*[:=]['"\s]*([a-zA-Z0-9._-]{10,})/gi,
+                /Bearer\s+([a-zA-Z0-9._-]{10,})/gi
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractCryptoKeys(content) {
+            const patterns = [
+                /-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(RSA\s+)?PRIVATE\s+KEY-----/gi,
+                /-----BEGIN\s+CERTIFICATE-----[\s\S]*?-----END\s+CERTIFICATE-----/gi,
+                /(private_key|secret_key|encryption_key)['"\s]*[:=]['"\s]*([a-zA-Z0-9+/=]{20,})/gi,
+                /[a-fA-F0-9]{64,}/g // Potential crypto hashes
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractPaymentKeys(content) {
+            const patterns = [
+                /sk_live_[a-zA-Z0-9]{24,}/gi,        // Stripe live secret
+                /pk_live_[a-zA-Z0-9]{24,}/gi,        // Stripe live public
+                /sk_test_[a-zA-Z0-9]{24,}/gi,        // Stripe test secret
+                /pk_test_[a-zA-Z0-9]{24,}/gi,        // Stripe test public
+                /sq0[a-z]{3}-[0-9A-Za-z_-]{22,43}/gi, // Square
+                /access_token\$production\$[0-9a-z]{16}\$[0-9a-f]{32}/gi, // Braintree
+                /AC[a-zA-Z0-9_\-]{32}/gi             // Twilio
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractPII(content) {
+            const patterns = [
+                /\b\d{3}-\d{2}-\d{4}\b/g,           // SSN
+                /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g, // Credit cards
+                /\b[A-Z0-9]{2}\d{6}[A-Z0-9]\b/g,    // Passport numbers
+                /(user_id|customer_id)['"\s]*[:=]['"\s]*(\d+)/gi
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractEmails(content) {
+            const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+            return [...new Set(content.match(emailPattern) || [])];
+        }
+
+        function extractPhoneNumbers(content) {
+            const patterns = [
+                /\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}/g,
+                /\+[1-9]\d{1,14}/g
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractCloudConfigurations(content) {
+            const patterns = [
+                /(aws_access_key_id|aws_secret_access_key)['"\s]*[:=]['"\s]*([^\s'"]+)/gi,
+                /(azure|gcp|google)['"\s]*[:=][\s\S]*?\{[^}]*\}/gi,
+                /GOOG[A-Z0-9]{28}/gi,                // Google API keys
+                /AIza[0-9A-Za-z_-]{35}/gi           // Google API keys
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractDockerReferences(content) {
+            const patterns = [
+                /FROM\s+[^\s]+/gi,
+                /docker\s+run[^\n]*/gi,
+                /dockerfile/gi,
+                /docker-compose/gi,
+                /\.dockerignore/gi
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractErrorMessages(content) {
+            const patterns = [
+                /Error:\s*[^\n]+/gi,
+                /Exception:\s*[^\n]+/gi,
+                /throw\s+new\s+\w+\([^)]*\)/gi,
+                /stack\s*trace/gi
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractXSSPatterns(content) {
+            const patterns = [
+                /innerHTML\s*[=+]\s*[^;]+/gi,
+                /document\.write\s*\([^)]*\)/gi,
+                /eval\s*\([^)]*\)/gi,
+                /setTimeout\s*\(\s*['"`][^'"`]*['"`]/gi,
+                /\$\([^)]*\)\.html\s*\(/gi
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractSQLiPatterns(content) {
+            const patterns = [
+                /SELECT\s+.*\s+FROM\s+/gi,
+                /INSERT\s+INTO\s+/gi,
+                /UPDATE\s+.*\s+SET\s+/gi,
+                /DELETE\s+FROM\s+/gi,
+                /UNION\s+SELECT/gi,
+                /OR\s+1\s*=\s*1/gi,
+                /AND\s+1\s*=\s*1/gi
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractPathTraversalPatterns(content) {
+            const patterns = [
+                /\.\.\/|\.\.\\/gi,
+                /path\.join\s*\([^)]*\.\.\//gi,
+                /require\s*\(\s*['"`][^'"`]*\.\.\/[^'"`]*['"`]\s*\)/gi
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractCSRFPatterns(content) {
+            const patterns = [
+                /(csrf[_-]?token|csrftoken|_token)['"\s]*[:=]['"\s]*([a-zA-Z0-9+/=]{10,})/gi,
+                /X-CSRFToken/gi,
+                /authenticity_token/gi
+            ];
+            
+            return extractWithPatterns(content, patterns);
+        }
+
+        function extractCustomPatterns(content, patternText) {
+            const patterns = patternText.split('\n').filter(p => p.trim());
+            const results = [];
+            
+            patterns.forEach(pattern => {
+                try {
+                    const regex = new RegExp(pattern, 'gi');
+                    const matches = content.match(regex) || [];
+                    results.push(...matches);
+                } catch (error) {
+                    results.push(`Error in pattern "${pattern}": ${error.message}`);
+                }
+            });
+            
+            return [...new Set(results)];
+        }
+
+        function extractWithPatterns(content, patterns) {
+            const results = [];
+            patterns.forEach(pattern => {
+                const matches = content.match(pattern) || [];
+                results.push(...matches);
+            });
+            return [...new Set(results)];
+        }
+
+        function filterFalsePositives(findings, category) {
+            if (!findings || findings.length === 0) return findings;
+            
+            const filters = {
+                urls: (url) => !url.includes('example.com') && !url.includes('localhost'),
+                emails: (email) => !email.includes('example.com') && !email.includes('test.com'),
+                apiKeys: (key) => key.length > 10 && !key.includes('test') && !key.includes('example'),
+                // Add more filters as needed
+            };
+            
+            if (filters[category]) {
+                return findings.filter(filters[category]);
+            }
+            
+            return findings;
+        }
+
+        // Enhanced extraction functions with safe execution
+        function extractUrls(content) {
+            if (!content) return [];
+            try {
+                const urlPattern = /https?:\/\/[^\s"'`>)]+/gi;
+                return [...new Set(content.match(urlPattern) || [])];
+            } catch (error) {
+                console.warn('Error extracting URLs:', error);
+                return [];
+            }
+        }
+
+        function extractApiEndpoints(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /['"]([/](?:api|v\d+)[/][^'"]*)['"]/gi,
+                    /['"]([/]graphql[^'"]*)['"]/gi,
+                    /fetch\s*\(\s*['"`]([^'"`]+)['"`]/gi,
+                    /axios\.[a-z]+\s*\(\s*['"`]([^'"`]+)['"`]/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting API endpoints:', error);
+                return [];
+            }
+        }
+
+        function extractDomains(content) {
+            if (!content) return [];
+            try {
+                const domainPattern = /(?:https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?:\/[^\s"'`>)]*)?/gi;
+                return [...new Set(content.match(domainPattern) || [])];
+            } catch (error) {
+                console.warn('Error extracting domains:', error);
+                return [];
+            }
+        }
+
+        function extractApiKeys(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /(api[_-]?key|apikey)['"\s]*[:=]['"\s]*([a-zA-Z0-9_-]{10,})/gi,
+                    /(secret|token)['"\s]*[:=]['"\s]*([a-zA-Z0-9_-]{10,})/gi,
+                    /(bearer\s+)([a-zA-Z0-9_-]{10,})/gi,
+                    /sk_live_[a-zA-Z0-9]{24,}/gi,
+                    /pk_live_[a-zA-Z0-9]{24,}/gi,
+                    /AKIA[0-9A-Z]{16}/gi,
+                    /AIza[0-9A-Za-z_-]{35}/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting API keys:', error);
+                return [];
+            }
+        }
+
+        function extractCredentials(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /(password|pwd)['"\s]*[:=]['"\s]*([^'"]{3,})/gi,
+                    /(username|user)['"\s]*[:=]['"\s]*([^'"]{3,})/gi,
+                    /(client[_-]?id)['"\s]*[:=]['"\s]*([a-zA-Z0-9_-]{10,})/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting credentials:', error);
+                return [];
+            }
+        }
+
+        function extractJwtTokens(content) {
+            if (!content) return [];
+            try {
+                const jwtPattern = /eyJ[A-Za-z0-9_-]*\.eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*/g;
+                return [...new Set(content.match(jwtPattern) || [])];
+            } catch (error) {
+                console.warn('Error extracting JWT tokens:', error);
+                return [];
+            }
+        }
+
+        function extractDatabaseConnections(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /(mongodb|mysql|postgres|redis|sqlite)['"\s]*[:=]['"\s]*([^'"]+)/gi,
+                    /jdbc:[^'"]+/gi,
+                    /postgresql:\/\/[^'"]+/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting database connections:', error);
+                return [];
+            }
+        }
+
+        function extractInternalReferences(content) {
+            if (!content) return [];
+            try {
+                const internalPattern = /(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.16\.|internal|staging|dev|test)/gi;
+                return [...new Set(content.match(internalPattern) || [])];
+            } catch (error) {
+                console.warn('Error extracting internal references:', error);
+                return [];
+            }
+        }
+
+        function extractSourceMaps(content) {
+            if (!content) return [];
+            try {
+                const sourceMapPattern = /sourceMappingURL=([^"'\s]*)/gi;
+                const matches = [];
+                let match;
+                while ((match = sourceMapPattern.exec(content)) !== null) {
+                    matches.push(match[1]);
+                }
+                return [...new Set(matches)];
+            } catch (error) {
+                console.warn('Error extracting source maps:', error);
+                return [];
+            }
+        }
+
+        function extractComments(content) {
+            if (!content) return [];
+            try {
+                const commentPattern = /(?:\/\/.*$|\/\*[\s\S]*?\*\/)/gm;
+                return [...new Set(content.match(commentPattern) || [])].slice(0, 50);
+            } catch (error) {
+                console.warn('Error extracting comments:', error);
+                return [];
+            }
+        }
+
+        // All extraction functions with complete error handling
+        function extractWebSockets(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /wss?:\/\/[^\s"'`>)]+/gi,
+                    /new\s+WebSocket\s*\(\s*['"`]([^'"`]+)['"`]/gi,
+                    /\.connect\s*\(\s*['"`](wss?:\/\/[^'"`]+)['"`]/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting WebSockets:', error);
+                return [];
+            }
+        }
+
+        function extractOAuthTokens(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /(client_secret|client_id)['"\s]*[:=]['"\s]*([a-zA-Z0-9_-]{10,})/gi,
+                    /(access_token|refresh_token)['"\s]*[:=]['"\s]*([a-zA-Z0-9._-]{10,})/gi,
+                    /Bearer\s+([a-zA-Z0-9._-]{10,})/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting OAuth tokens:', error);
+                return [];
+            }
+        }
+
+        function extractCryptoKeys(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(RSA\s+)?PRIVATE\s+KEY-----/gi,
+                    /-----BEGIN\s+CERTIFICATE-----[\s\S]*?-----END\s+CERTIFICATE-----/gi,
+                    /(private_key|secret_key|encryption_key)['"\s]*[:=]['"\s]*([a-zA-Z0-9+/=]{20,})/gi,
+                    /[a-fA-F0-9]{64,}/g // Potential crypto hashes
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting crypto keys:', error);
+                return [];
+            }
+        }
+
+        function extractPaymentKeys(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /sk_live_[a-zA-Z0-9]{24,}/gi,        // Stripe live secret
+                    /pk_live_[a-zA-Z0-9]{24,}/gi,        // Stripe live public
+                    /sk_test_[a-zA-Z0-9]{24,}/gi,        // Stripe test secret
+                    /pk_test_[a-zA-Z0-9]{24,}/gi,        // Stripe test public
+                    /sq0[a-z]{3}-[0-9A-Za-z_-]{22,43}/gi, // Square
+                    /access_token\$production\$[0-9a-z]{16}\$[0-9a-f]{32}/gi, // Braintree
+                    /AC[a-zA-Z0-9_\-]{32}/gi             // Twilio
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting payment keys:', error);
+                return [];
+            }
+        }
+
+        function extractPII(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /\b\d{3}-\d{2}-\d{4}\b/g,           // SSN
+                    /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g, // Credit cards
+                    /\b[A-Z0-9]{2}\d{6}[A-Z0-9]\b/g,    // Passport numbers
+                    /(user_id|customer_id)['"\s]*[:=]['"\s]*(\d+)/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting PII:', error);
+                return [];
+            }
+        }
+
+        function extractEmails(content) {
+            if (!content) return [];
+            try {
+                const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+                return [...new Set(content.match(emailPattern) || [])];
+            } catch (error) {
+                console.warn('Error extracting emails:', error);
+                return [];
+            }
+        }
+
+        function extractPhoneNumbers(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /\+?1?[-.\s]?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}/g,
+                    /\+[1-9]\d{1,14}/g
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting phone numbers:', error);
+                return [];
+            }
+        }
+
+        function extractCloudConfigurations(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /(aws_access_key_id|aws_secret_access_key)['"\s]*[:=]['"\s]*([^\s'"]+)/gi,
+                    /(azure|gcp|google)['"\s]*[:=][\s\S]*?\{[^}]*\}/gi,
+                    /GOOG[A-Z0-9]{28}/gi,                // Google API keys
+                    /AIza[0-9A-Za-z_-]{35}/gi           // Google API keys
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting cloud configurations:', error);
+                return [];
+            }
+        }
+
+        function extractDockerReferences(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /FROM\s+[^\s]+/gi,
+                    /docker\s+run[^\n]*/gi,
+                    /dockerfile/gi,
+                    /docker-compose/gi,
+                    /\.dockerignore/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting Docker references:', error);
+                return [];
+            }
+        }
+
+        function extractErrorMessages(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /Error:\s*[^\n]+/gi,
+                    /Exception:\s*[^\n]+/gi,
+                    /throw\s+new\s+\w+\([^)]*\)/gi,
+                    /stack\s*trace/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting error messages:', error);
+                return [];
+            }
+        }
+
+        function extractXSSPatterns(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /innerHTML\s*[=+]\s*[^;]+/gi,
+                    /document\.write\s*\([^)]*\)/gi,
+                    /eval\s*\([^)]*\)/gi,
+                    /setTimeout\s*\(\s*['"`][^'"`]*['"`]/gi,
+                    /\$\([^)]*\)\.html\s*\(/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting XSS patterns:', error);
+                return [];
+            }
+        }
+
+        function extractSQLiPatterns(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /SELECT\s+.*\s+FROM\s+/gi,
+                    /INSERT\s+INTO\s+/gi,
+                    /UPDATE\s+.*\s+SET\s+/gi,
+                    /DELETE\s+FROM\s+/gi,
+                    /UNION\s+SELECT/gi,
+                    /OR\s+1\s*=\s*1/gi,
+                    /AND\s+1\s*=\s*1/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting SQLi patterns:', error);
+                return [];
+            }
+        }
+
+        function extractPathTraversalPatterns(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /\.\.\/|\.\.\\/gi,
+                    /path\.join\s*\([^)]*\.\.\//gi,
+                    /require\s*\(\s*['"`][^'"`]*\.\.\/[^'"`]*['"`]\s*\)/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting path traversal patterns:', error);
+                return [];
+            }
+        }
+
+        function extractCSRFPatterns(content) {
+            if (!content) return [];
+            try {
+                const patterns = [
+                    /(csrf[_-]?token|csrftoken|_token)['"\s]*[:=]['"\s]*([a-zA-Z0-9+/=]{10,})/gi,
+                    /X-CSRFToken/gi,
+                    /authenticity_token/gi
+                ];
+                
+                return extractWithPatterns(content, patterns);
+            } catch (error) {
+                console.warn('Error extracting CSRF patterns:', error);
+                return [];
+            }
+        }
+
+        function extractDebugInfo(content) {
+            if (!content) return [];
+            try {
+                const debugPattern = /(console\.log|debugger|TODO|FIXME|XXX|HACK)/gi;
+                return [...new Set(content.match(debugPattern) || [])];
+            } catch (error) {
+                console.warn('Error extracting debug info:', error);
+                return [];
+            }
+        }
+
+        function generateStatistics() {
+            if (!analysisResults || !analysisResults.findings) {
+                console.warn('No analysis results available for statistics');
+                return;
+            }
+            
+            const stats = {
+                totalFindings: 0,
+                highSeverity: 0,
+                mediumSeverity: 0,
+                lowSeverity: 0,
+                categories: {}
+            };
+
+            try {
+                Object.keys(analysisResults.findings).forEach(category => {
+                    const findings = analysisResults.findings[category] || [];
+                    const count = Array.isArray(findings) ? findings.length : 0;
+                    const severity = severityMap[category] || 'low';
+                    
+                    stats.totalFindings += count;
+                    stats.categories[category] = { count, severity };
+                    
+                    switch (severity) {
+                        case 'high':
+                            stats.highSeverity += count;
+                            break;
+                        case 'medium':
+                            stats.mediumSeverity += count;
+                            break;
+                        case 'low':
+                            stats.lowSeverity += count;
+                            break;
+                    }
+                });
+
+                analysisResults.statistics = stats;
+                
+                // Update UI safely
+                const totalElement = document.getElementById('totalFindings');
+                const highElement = document.getElementById('highSeverity');
+                const mediumElement = document.getElementById('mediumSeverity');
+                const lowElement = document.getElementById('lowSeverity');
+                const filesElement = document.getElementById('filesScanned');
+                const linesElement = document.getElementById('linesOfCode');
+                
+                if (totalElement) totalElement.textContent = stats.totalFindings;
+                if (highElement) highElement.textContent = stats.highSeverity;
+                if (mediumElement) mediumElement.textContent = stats.mediumSeverity;
+                if (lowElement) lowElement.textContent = stats.lowSeverity;
+                if (filesElement) filesElement.textContent = scannedFiles.length;
+                
+                if (linesElement) {
+                    const totalLines = scannedFiles.reduce((total, file) => {
+                        // Estimate lines of code
+                        return total + Math.round(file.size / 50); // Rough estimate
+                    }, 0);
+                    linesElement.textContent = totalLines.toLocaleString();
+                }
+            } catch (error) {
+                console.error('Error generating statistics:', error);
+            }
+        }
+
+        function generateRiskAssessment() {
+            if (!analysisResults || !analysisResults.statistics) {
+                console.warn('No statistics available for risk assessment');
+                return;
+            }
+            
+            try {
+                const stats = analysisResults.statistics;
+                let riskLevel = 'low';
+                let riskScore = 0;
+                const riskFactors = [];
+
+                // Calculate risk score
+                riskScore += (stats.highSeverity || 0) * 10;
+                riskScore += (stats.mediumSeverity || 0) * 5;
+                riskScore += (stats.lowSeverity || 0) * 1;
+
+                // Determine risk level
+                if (riskScore >= 50 || (stats.highSeverity || 0) >= 5) {
+                    riskLevel = 'high';
+                } else if (riskScore >= 20 || (stats.highSeverity || 0) >= 1) {
+                    riskLevel = 'medium';
+                }
+
+                // Identify specific risk factors
+                Object.keys(stats.categories || {}).forEach(category => {
+                    const categoryData = stats.categories[category];
+                    if (categoryData && categoryData.count > 0) {
+                        if (categoryData.severity === 'high') {
+                            riskFactors.push(`🔴 ${getCategoryDisplayName(category)}: ${categoryData.count} findings`);
+                        } else if (categoryData.count > 5 && categoryData.severity === 'medium') {
+                            riskFactors.push(`🟡 ${getCategoryDisplayName(category)}: ${categoryData.count} findings`);
+                        }
+                    }
+                });
+
+                // Update risk assessment UI safely
+                const riskLevelElement = document.getElementById('riskLevel');
+                const riskDescription = document.getElementById('riskDescription');
+                const riskFactorsElement = document.getElementById('riskFactors');
+
+                if (riskLevelElement) {
+                    riskLevelElement.className = `risk-level ${riskLevel}`;
+                    
+                    switch (riskLevel) {
+                        case 'high':
+                            riskLevelElement.textContent = '🚨 HIGH RISK';
+                            break;
+                        case 'medium':
+                            riskLevelElement.textContent = '⚠️ MEDIUM RISK';
+                            break;
+                        case 'low':
+                            riskLevelElement.textContent = '✅ LOW RISK';
+                            break;
+                    }
+                }
+
+                if (riskDescription) {
+                    switch (riskLevel) {
+                        case 'high':
+                            riskDescription.textContent = 'Critical security issues detected. Immediate attention required.';
+                            break;
+                        case 'medium':
+                            riskDescription.textContent = 'Security concerns identified. Review and remediation recommended.';
+                            break;
+                        case 'low':
+                            riskDescription.textContent = 'Minor issues detected. Regular security practices recommended.';
+                            break;
+                    }
+                }
+
+                if (riskFactorsElement) {
+                    if (riskFactors.length > 0) {
+                        riskFactorsElement.innerHTML = `
+                            <strong>Key Risk Factors:</strong><br>
+                            ${riskFactors.join('<br>')}
+                        `;
+                    } else {
+                        riskFactorsElement.innerHTML = '<em>No significant risk factors identified.</em>';
+                    }
+                }
+
+                analysisResults.riskAssessment = {
+                    level: riskLevel,
+                    score: riskScore,
+                    factors: riskFactors
+                };
+            } catch (error) {
+                console.error('Error generating risk assessment:', error);
+            }
+        }
+
+        function getCategoryDisplayName(category) {
+            const displayNames = {
+                apiKeys: 'API Keys',
+                credentials: 'Credentials',
+                jwt: 'JWT Tokens',
+                oauth: 'OAuth Tokens',
+                crypto: 'Crypto Keys',
+                payment: 'Payment Keys',
+                pii: 'Personal Data',
+                emails: 'Email Addresses',
+                phones: 'Phone Numbers',
+                urls: 'URLs',
+                apis: 'API Endpoints',
+                websockets: 'WebSockets',
+                domains: 'Domains',
+                database: 'Database Connections',
+                internal: 'Internal References',
+                cloud: 'Cloud Configs',
+                docker: 'Docker References',
+                debug: 'Debug Info',
+                comments: 'Comments',
+                sourcemaps: 'Source Maps',
+                errors: 'Error Messages',
+                xss: 'XSS Patterns',
+                sqli: 'SQL Injection',
+                pathTraversal: 'Path Traversal',
+                csrf: 'CSRF Tokens',
+                custom: 'Custom Patterns'
+            };
+            return displayNames[category] || category;
+        }
+
+        function displayResults() {
+            resultsGrid.innerHTML = '';
+
+            const categories = [
+                { key: 'apiKeys', title: '🔑 API Keys & Tokens', icon: '🔑' },
+                { key: 'credentials', title: '👤 Credentials', icon: '👤' },
+                { key: 'jwt', title: '🎫 JWT Tokens', icon: '🎫' },
+                { key: 'oauth', title: '🔐 OAuth Tokens', icon: '🔐' },
+                { key: 'crypto', title: '🔒 Cryptographic Keys', icon: '🔒' },
+                { key: 'payment', title: '💳 Payment Provider Keys', icon: '💳' },
+                { key: 'pii', title: '👥 Personal Data', icon: '👥' },
+                { key: 'emails', title: '📧 Email Addresses', icon: '📧' },
+                { key: 'phones', title: '📞 Phone Numbers', icon: '📞' },
+                { key: 'urls', title: '🌐 URLs', icon: '🌐' },
+                { key: 'apis', title: '🔗 API Endpoints', icon: '🔗' },
+                { key: 'websockets', title: '⚡ WebSocket Connections', icon: '⚡' },
+                { key: 'domains', title: '🌍 Domain References', icon: '🌍' },
+                { key: 'database', title: '🗄️ Database Connections', icon: '🗄️' },
+                { key: 'internal', title: '🏠 Internal References', icon: '🏠' },
+                { key: 'cloud', title: '☁️ Cloud Configurations', icon: '☁️' },
+                { key: 'docker', title: '🐳 Docker References', icon: '🐳' },
+                { key: 'xss', title: '🚨 XSS Patterns', icon: '🚨' },
+                { key: 'sqli', title: '💉 SQL Injection', icon: '💉' },
+                { key: 'pathTraversal', title: '📂 Path Traversal', icon: '📂' },
+                { key: 'csrf', title: '🛡️ CSRF Tokens', icon: '🛡️' },
+                { key: 'debug', title: '🐛 Debug Information', icon: '🐛' },
+                { key: 'comments', title: '💬 Comments & TODOs', icon: '💬' },
+                { key: 'sourcemaps', title: '🗺️ Source Maps', icon: '🗺️' },
+                { key: 'errors', title: '❌ Error Messages', icon: '❌' },
+                { key: 'custom', title: '🔍 Custom Patterns', icon: '🔍' }
+            ];
+
+            categories.forEach(category => {
+                const findings = analysisResults.findings[category.key];
+                if (findings && findings.length > 0) {
+                    createResultCategory(category, findings);
+                }
+            });
+
+            // If no results found
+            if (resultsGrid.children.length === 0) {
+                resultsGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #888;">
+                        <h3>🎉 No Security Issues Found</h3>
+                        <p>The analysis completed successfully without finding any significant security concerns.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function createResultCategory(category, findings) {
+            if (!category || !findings || !Array.isArray(findings)) {
+                console.warn('Invalid parameters for createResultCategory');
+                return;
+            }
+            
+            try {
+                const resultsGrid = document.getElementById('resultsGrid');
+                if (!resultsGrid) return;
+                
+                const severity = severityMap[category.key] || 'low';
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'result-category';
+                categoryDiv.dataset.category = category.key;
+                categoryDiv.dataset.severity = severity;
+
+                const title = document.createElement('div');
+                title.className = 'category-title';
+                title.innerHTML = `
+                    ${category.title} 
+                    <span class="count-badge">${findings.length}</span>
+                `;
+
+                const list = document.createElement('div');
+                list.className = 'result-list';
+
+                findings.forEach((finding, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'result-item';
+                    item.dataset.index = index;
+                    
+                    // Create finding content safely
+                    let findingText = '';
+                    let fileName = 'Unknown';
+                    
+                    if (typeof finding === 'string') {
+                        findingText = finding;
+                    } else if (finding && typeof finding === 'object') {
+                        findingText = finding.value || finding.match || finding.toString();
+                        fileName = finding.file || 'Unknown';
+                    } else {
+                        findingText = String(finding || '');
+                    }
+                    
+                    // Sanitize text for HTML
+                    const sanitizedText = findingText.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                    const sanitizedFileName = fileName.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+                    
+                    item.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div style="flex: 1; word-break: break-all;">
+                                <strong>${sanitizedText}</strong>
+                                ${fileName !== 'Unknown' ? `<br><small style="color: #888;">📁 ${sanitizedFileName}</small>` : ''}
+                            </div>
+                            <div style="display: flex; gap: 5px; margin-left: 10px;">
+                                <div class="severity-indicator ${severity}"></div>
+                                <button class="copy-btn" onclick="copyToClipboard('${sanitizedText}')">📋</button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    list.appendChild(item);
+                });
+
+                categoryDiv.appendChild(title);
+                categoryDiv.appendChild(list);
+                resultsGrid.appendChild(categoryDiv);
+            } catch (error) {
+                console.error('Error creating result category:', error);
+            }
+        }
+
+        function copyToClipboard(text) {
+            if (!text || typeof text !== 'string') {
+                console.warn('Invalid text for clipboard');
+                return;
+            }
+            
+            try {
+                navigator.clipboard.writeText(text).then(() => {
+                    // Show temporary feedback
+                    const feedback = document.createElement('div');
+                    feedback.textContent = '✅ Copied!';
+                    feedback.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: #00ff88;
+                        color: #000;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        font-weight: bold;
+                        z-index: 10000;
+                        animation: fadeInOut 2s ease-in-out;
+                    `;
+                    document.body.appendChild(feedback);
+                    setTimeout(() => {
+                        if (document.body.contains(feedback)) {
+                            document.body.removeChild(feedback);
+                        }
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                    // Fallback for older browsers
+                    fallbackCopyTextToClipboard(text);
+                });
+            } catch (error) {
+                console.error('Clipboard error:', error);
+                fallbackCopyTextToClipboard(text);
+            }
+        }
+
+        function fallbackCopyTextToClipboard(text) {
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.top = "0";
+                textArea.style.left = "0";
+                textArea.style.position = "fixed";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    console.log('Fallback: Copying text command was successful');
+                } catch (err) {
+                    console.error('Fallback: Oops, unable to copy', err);
+                }
+                
+                document.body.removeChild(textArea);
+            } catch (error) {
+                console.error('Fallback copy failed:', error);
+            }
+        }
+
+        function shareResults() {
+            if (!analysisResults.findings || Object.keys(analysisResults.findings).length === 0) {
+                alert('No results to share. Please run an analysis first.');
+                return;
+            }
+
+            const shareData = {
+                title: 'JavaScript Security Analysis Results',
+                text: `Found ${analysisResults.statistics?.totalFindings || 0} security findings in ${scannedFiles.length} files.`,
+                url: window.location.href
+            };
+
+            if (navigator.share) {
+                navigator.share(shareData).catch(err => {
+                    console.log('Error sharing:', err);
+                    fallbackShare();
+                });
+            } else {
+                fallbackShare();
+            }
+        }
+
+        function fallbackShare() {
+            const summary = generateTextReport();
+            const blob = new Blob([summary], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `security-analysis-${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes || typeof bytes !== 'number' || bytes === 0) return '0 Bytes';
+            
+            try {
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            } catch (error) {
+                console.error('Error formatting file size:', error);
+                return '0 Bytes';
+            }
+        }
+
+        // Debug function to check if results exist
+        function checkResults() {
+            console.log('Analysis Results:', analysisResults);
+            console.log('Scanned Files:', scannedFiles);
+            if (analysisResults.findings) {
+                console.log('Total categories with findings:', Object.keys(analysisResults.findings).length);
+                Object.keys(analysisResults.findings).forEach(category => {
+                    console.log(`${category}: ${analysisResults.findings[category].length} findings`);
+                });
+            }
+        }
+
+        // Make checkResults available globally for debugging
+        window.checkResults = checkResults;
+
+        function filterResults() {
+            const filterText = resultsFilter.value.toLowerCase();
+            const categories = resultsGrid.querySelectorAll('.result-category');
+
+            categories.forEach(category => {
+                const categoryName = category.dataset.category.toLowerCase();
+                const severity = category.dataset.severity.toLowerCase();
+                const items = category.querySelectorAll('.result-item');
+                let hasVisibleItems = false;
+
+                // Check if category name or severity matches filter
+                const categoryMatches = categoryName.includes(filterText) || severity.includes(filterText);
+
+                items.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    const matches = text.includes(filterText) || categoryMatches;
+                    
+                    item.style.display = matches ? 'block' : 'none';
+                    if (matches) hasVisibleItems = true;
+                });
+
+                category.style.display = hasVisibleItems ? 'block' : 'none';
+            });
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Show temporary feedback
+                const feedback = document.createElement('div');
+                feedback.textContent = '✅ Copied!';
+                feedback.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #00ff88;
+                    color: #000;
+                    padding: 10px 20px;
+                    border-radius: 5px;
+                    font-weight: bold;
+                    z-index: 10000;
+                    animation: fadeInOut 2s ease-in-out;
+                `;
+                document.body.appendChild(feedback);
+                setTimeout(() => document.body.removeChild(feedback), 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+
+        function clearAll() {
+            analysisResults = {};
+            scannedFiles = [];
+            currentAnalysisId = null;
+            
+            fileInput.value = '';
+            resultsSection.style.display = 'none';
+            progressContainer.style.display = 'none';
+            analyzeBtn.disabled = true;
+            quickScanBtn.disabled = true;
+            
+            // Reset custom patterns
+            customPattern.value = '';
+            customEnabled.checked = false;
+            customPattern.disabled = true;
+            
+            // Reset filter
+            resultsFilter.value = '';
+            
+            // Switch back to analyze tab
+            switchTab('analyze');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function exportResults(format) {
+            if (!analysisResults.findings || Object.keys(analysisResults.findings).length === 0) {
+                alert('No results to export. Please run an analysis first.');
+                return;
+            }
+
+            let content = '';
+            let fileName = `security-analysis-${Date.now()}`;
+            let mimeType = 'text/plain';
+
+            switch (format) {
+                case 'json':
+                    content = JSON.stringify(analysisResults, null, 2);
+                    fileName += '.json';
+                    mimeType = 'application/json';
+                    break;
+
+                case 'csv':
+                    content = generateCSVReport();
+                    fileName += '.csv';
+                    mimeType = 'text/csv';
+                    break;
+
+                case 'html':
+                    content = generateHTMLReport();
+                    fileName += '.html';
+                    mimeType = 'text/html';
+                    break;
+
+                case 'markdown':
+                    content = generateMarkdownReport();
+                    fileName += '.md';
+                    mimeType = 'text/markdown';
+                    break;
+
+                case 'xml':
+                    content = generateXMLReport();
+                    fileName += '.xml';
+                    mimeType = 'application/xml';
+                    break;
+
+                default:
+                    content = generateTextReport();
+                    fileName += '.txt';
+                    break;
+            }
+
+            downloadFile(content, fileName, mimeType);
+        }
+
+        function exportBugBounty(platform) {
+            if (!analysisResults.findings || Object.keys(analysisResults.findings).length === 0) {
+                alert('No results to export. Please run an analysis first.');
+                return;
+            }
+
+            let content = '';
+            let fileName = `bug-bounty-report-${platform}-${Date.now()}.md`;
+
+            switch (platform) {
+                case 'hackerone':
+                    content = generateHackerOneReport();
+                    break;
+                case 'bugcrowd':
+                    content = generateBugcrowdReport();
+                    break;
+                case 'intigriti':
+                    content = generateIntigritiReport();
+                    break;
+            }
+
+            downloadFile(content, fileName, 'text/markdown');
+        }
+
+        function generateCSVReport() {
+            let csv = 'Category,Severity,Finding,File,Description\n';
+            
+            Object.keys(analysisResults.findings).forEach(category => {
+                const severity = severityMap[category] || 'low';
+                const findings = analysisResults.findings[category];
+                
+                findings.forEach(finding => {
+                    const findingText = typeof finding === 'string' ? finding : finding.value || finding.match;
+                    const fileName = finding.file || 'Unknown';
+                    const description = getCategoryDisplayName(category);
+                    
+                    csv += `"${category}","${severity}","${findingText.replace(/"/g, '""')}","${fileName}","${description}"\n`;
+                });
+            });
+            
+            return csv;
+        }
+
+        function generateHTMLReport() {
+            const timestamp = new Date().toISOString();
+            const stats = analysisResults.statistics;
+            
+            let html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Security Analysis Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 30px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; }
+        .stat-number { font-size: 2em; font-weight: bold; color: #007bff; }
+        .risk-high { color: #dc3545; }
+        .risk-medium { color: #ffc107; }
+        .risk-low { color: #28a745; }
+        .category { margin-bottom: 30px; }
+        .category-title { background: #007bff; color: white; padding: 10px; margin-bottom: 10px; }
+        .finding { background: #f8f9fa; padding: 10px; margin: 5px 0; border-left: 4px solid #007bff; }
+        .severity-high { border-left-color: #dc3545; }
+        .severity-medium { border-left-color: #ffc107; }
+        .severity-low { border-left-color: #28a745; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛡️ Security Analysis Report</h1>
+            <p>Generated on ${timestamp}</p>
+            <p>Risk Level: <span class="risk-${analysisResults.riskAssessment.level}">${analysisResults.riskAssessment.level.toUpperCase()}</span></p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">${stats.totalFindings}</div>
+                <div>Total Findings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number risk-high">${stats.highSeverity}</div>
+                <div>High Severity</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number risk-medium">${stats.mediumSeverity}</div>
+                <div>Medium Severity</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number risk-low">${stats.lowSeverity}</div>
+                <div>Low Severity</div>
+            </div>
+        </div>
+`;
+
+            Object.keys(analysisResults.findings).forEach(category => {
+                const findings = analysisResults.findings[category];
+                const severity = severityMap[category] || 'low';
+                
+                if (findings.length > 0) {
+                    html += `
+        <div class="category">
+            <div class="category-title">${getCategoryDisplayName(category)} (${findings.length})</div>
+`;
+                    
+                    findings.forEach(finding => {
+                        const findingText = typeof finding === 'string' ? finding : finding.value || finding.match;
+                        const fileName = finding.file || 'Unknown';
+                        
+                        html += `
+            <div class="finding severity-${severity}">
+                <strong>${findingText}</strong><br>
+                <small>File: ${fileName}</small>
+            </div>
+`;
+                    });
+                    
+                    html += `        </div>\n`;
+                }
+            });
+
+            html += `
+    </div>
+</body>
+</html>`;
+            
+            return html;
+        }
+
+        function generateMarkdownReport() {
+            const timestamp = new Date().toISOString();
+            const stats = analysisResults.statistics;
+            
+            let md = `# 🛡️ Security Analysis Report
+
+**Generated:** ${timestamp}  
+**Risk Level:** ${analysisResults.riskAssessment.level.toUpperCase()}  
+**Files Scanned:** ${scannedFiles.length}
+
+## 📊 Summary Statistics
+
+| Metric | Count |
+|--------|-------|
+| Total Findings | ${stats.totalFindings} |
+| High Severity | ${stats.highSeverity} |
+| Medium Severity | ${stats.mediumSeverity} |
+| Low Severity | ${stats.lowSeverity} |
+
+## 🚨 Risk Assessment
+
+**Level:** ${analysisResults.riskAssessment.level.toUpperCase()}  
+**Score:** ${analysisResults.riskAssessment.score}
+
+### Risk Factors
+${analysisResults.riskAssessment.factors.length > 0 ? 
+    analysisResults.riskAssessment.factors.map(f => `- ${f}`).join('\n') : 
+    '- No significant risk factors identified'
+}
+
+## 🔍 Detailed Findings
+
+`;
+
+            Object.keys(analysisResults.findings).forEach(category => {
+                const findings = analysisResults.findings[category];
+                const severity = severityMap[category] || 'low';
+                
+                if (findings.length > 0) {
+                    md += `### ${getCategoryDisplayName(category)} (${severity.toUpperCase()} SEVERITY)\n\n`;
+                    md += `**Found ${findings.length} items:**\n\n`;
+                    
+                    findings.forEach((finding, index) => {
+                        const findingText = typeof finding === 'string' ? finding : finding.value || finding.match;
+                        const fileName = finding.file || 'Unknown';
+                        
+                        md += `${index + 1}. \`${findingText}\`\n`;
+                        md += `   - **File:** ${fileName}\n`;
+                    });
+                    
+                    md += '\n';
+                }
+            });
+
+            return md;
+        }
+
+        function generateXMLReport() {
+            const timestamp = new Date().toISOString();
+            
+            let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<security-analysis-report>
+    <metadata>
+        <timestamp>${timestamp}</timestamp>
+        <risk-level>${analysisResults.riskAssessment.level}</risk-level>
+        <files-scanned>${scannedFiles.length}</files-scanned>
+    </metadata>
+    
+    <statistics>
+        <total-findings>${analysisResults.statistics.totalFindings}</total-findings>
+        <high-severity>${analysisResults.statistics.highSeverity}</high-severity>
+        <medium-severity>${analysisResults.statistics.mediumSeverity}</medium-severity>
+        <low-severity>${analysisResults.statistics.lowSeverity}</low-severity>
+    </statistics>
+    
+    <findings>
+`;
+
+            Object.keys(analysisResults.findings).forEach(category => {
+                const findings = analysisResults.findings[category];
+                const severity = severityMap[category] || 'low';
+                
+                if (findings.length > 0) {
+                    xml += `        <category name="${category}" severity="${severity}" count="${findings.length}">\n`;
+                    
+                    findings.forEach(finding => {
+                        const findingText = typeof finding === 'string' ? finding : finding.value || finding.match;
+                        const fileName = finding.file || 'Unknown';
+                        
+                        xml += `            <finding>\n`;
+                        xml += `                <value><![CDATA[${findingText}]]></value>\n`;
+                        xml += `                <file><![CDATA[${fileName}]]></file>\n`;
+                        xml += `            </finding>\n`;
+                    });
+                    
+                    xml += `        </category>\n`;
+                }
+            });
+
+            xml += `    </findings>
+</security-analysis-report>`;
+            
+            return xml;
+        }
+
+        function generateTextReport() {
+            const timestamp = new Date().toISOString();
+            const stats = analysisResults.statistics;
+            
+            let report = `🛡️ SECURITY ANALYSIS REPORT
+═══════════════════════════════════════════════════════════════
+
+Generated: ${timestamp}
+Analysis ID: ${analysisResults.metadata.analysisId}
+Risk Level: ${analysisResults.riskAssessment.level.toUpperCase()}
+Files Scanned: ${scannedFiles.length}
+
+📊 SUMMARY STATISTICS
+═══════════════════════════════════════════════════════════════
+Total Findings: ${stats.totalFindings}
+High Severity: ${stats.highSeverity}
+Medium Severity: ${stats.mediumSeverity}
+Low Severity: ${stats.lowSeverity}
+
+🚨 RISK ASSESSMENT
+═══════════════════════════════════════════════════════════════
+Risk Level: ${analysisResults.riskAssessment.level.toUpperCase()}
+Risk Score: ${analysisResults.riskAssessment.score}
+
+Risk Factors:
+${analysisResults.riskAssessment.factors.length > 0 ? 
+    analysisResults.riskAssessment.factors.map(f => `• ${f}`).join('\n') : 
+    '• No significant risk factors identified'
+}
+
+🔍 DETAILED FINDINGS
+═══════════════════════════════════════════════════════════════
+
+`;
+
+            Object.keys(analysisResults.findings).forEach(category => {
+                const findings = analysisResults.findings[category];
+                const severity = severityMap[category] || 'low';
+                
+                if (findings.length > 0) {
+                    report += `\n📋 ${getCategoryDisplayName(category).toUpperCase()}\n`;
+                    report += `Severity: ${severity.toUpperCase()}\n`;
+                    report += `Count: ${findings.length}\n`;
+                    report += '─'.repeat(50) + '\n';
+                    
+                    findings.forEach((finding, index) => {
+                        const findingText = typeof finding === 'string' ? finding : finding.value || finding.match;
+                        const fileName = finding.file || 'Unknown';
+                        
+                        report += `${(index + 1).toString().padStart(3, ' ')}. ${findingText}\n`;
+                        report += `     📁 File: ${fileName}\n`;
+                    });
+                    
+                    report += '\n';
+                }
+            });
+
+            report += `
+═══════════════════════════════════════════════════════════════
+Report generated by Advanced JS Security Analyzer
+Analysis completed at ${timestamp}
+═══════════════════════════════════════════════════════════════`;
+
+            return report;
+        }
+
+        function generateHackerOneReport() {
+            const highSeverityFindings = Object.keys(analysisResults.findings).filter(
+                category => severityMap[category] === 'high' && analysisResults.findings[category].length > 0
+            );
+
+            return `# Security Vulnerability Report
+
+## Summary
+During security analysis of JavaScript files, multiple security vulnerabilities were identified that could potentially compromise application security.
+
+## Vulnerability Details
+
+${highSeverityFindings.map(category => {
+    const findings = analysisResults.findings[category];
+    return `### ${getCategoryDisplayName(category)}
+
+**Severity:** High
+**Category:** Information Disclosure / Sensitive Data Exposure
+
+**Description:**
+${getVulnerabilityDescription(category)}
+
+**Evidence:**
+\`\`\`
+${findings.slice(0, 5).map(f => typeof f === 'string' ? f : f.value || f.match).join('\n')}
+${findings.length > 5 ? `... and ${findings.length - 5} more` : ''}
+\`\`\`
+
+**Impact:**
+${getImpactDescription(category)}
+
+**Recommendation:**
+${getRecommendation(category)}
+
+---
+`;
+}).join('\n')}
+
+## Proof of Concept
+Files analyzed: ${scannedFiles.map(f => f.name).join(', ')}
+
+## Timeline
+- **Discovery:** ${new Date().toISOString().split('T')[0]}
+- **Analysis:** ${new Date().toISOString().split('T')[0]}
+- **Report:** ${new Date().toISOString().split('T')[0]}`;
+        }
+
+        function generateBugcrowdReport() {
+            return `# JavaScript Security Analysis Report
+
+## Executive Summary
+Automated security analysis revealed multiple security concerns in JavaScript files that may lead to information disclosure and potential security vulnerabilities.
+
+## Technical Details
+${Object.keys(analysisResults.findings).filter(category => 
+    analysisResults.findings[category].length > 0
+).map(category => `
+### ${getCategoryDisplayName(category)}
+- **Severity:** ${(severityMap[category] || 'low').toUpperCase()}
+- **Count:** ${analysisResults.findings[category].length}
+- **Risk:** ${getVulnerabilityDescription(category)}
+`).join('\n')}
+
+## Risk Assessment
+- **Overall Risk:** ${analysisResults.riskAssessment.level.toUpperCase()}
+- **Total Findings:** ${analysisResults.statistics.totalFindings}
+- **Critical Issues:** ${analysisResults.statistics.highSeverity}
+
+## Recommendations
+1. Remove hardcoded credentials from source code
+2. Implement proper secret management
+3. Use environment variables for sensitive configuration
+4. Regular security code reviews
+5. Implement automated security scanning in CI/CD pipeline`;
+        }
+
+        function generateIntigritiReport() {
+            return `# Security Assessment Report
+
+## Overview
+This report contains findings from an automated JavaScript security analysis focusing on potential information disclosure vulnerabilities.
+
+## Key Findings
+${Object.keys(analysisResults.findings).filter(category => 
+    severityMap[category] === 'high' && analysisResults.findings[category].length > 0
+).map(category => `
+- **${getCategoryDisplayName(category)}:** ${analysisResults.findings[category].length} instances found
+`).join('')}
+
+## Detailed Analysis
+${Object.keys(analysisResults.findings).filter(category => 
+    analysisResults.findings[category].length > 0
+).map(category => `
+### ${getCategoryDisplayName(category)}
+**Risk Level:** ${(severityMap[category] || 'low').toUpperCase()}
+
+${getVulnerabilityDescription(category)}
+
+**Sample Evidence:**
+\`\`\`
+${analysisResults.findings[category].slice(0, 3).map(f => 
+    typeof f === 'string' ? f : f.value || f.match
+).join('\n')}
+\`\`\`
+`).join('\n')}
+
+## Remediation Steps
+1. **Immediate Actions:**
+   - Remove all hardcoded credentials from source code
+   - Audit exposed API keys and rotate if necessary
+   - Review access controls for sensitive endpoints
+
+2. **Long-term Improvements:**
+   - Implement proper secret management solution
+   - Establish secure coding guidelines
+   - Regular security assessments
+
+## Tools Used
+- Advanced JS Security Analyzer v2.0
+- Custom pattern detection engine
+- Automated vulnerability scanning`;
+        }
+
+        function getVulnerabilityDescription(category) {
+            const descriptions = {
+                apiKeys: 'API keys and tokens were found hardcoded in JavaScript files, potentially allowing unauthorized access to external services.',
+                credentials: 'Hardcoded credentials including usernames and passwords were discovered, posing a significant security risk.',
+                jwt: 'JWT tokens found in client-side code could be extracted and potentially misused by attackers.',
+                oauth: 'OAuth tokens and client secrets exposed in JavaScript could lead to unauthorized API access.',
+                crypto: 'Cryptographic keys and certificates found in client-side code compromise encryption security.',
+                payment: 'Payment provider API keys discovered could lead to unauthorized financial transactions.',
+                pii: 'Personal identifiable information found in JavaScript poses privacy and compliance risks.',
+                emails: 'Email addresses exposed in client-side code could be harvested for spam or phishing attacks.',
+                phones: 'Phone numbers found in JavaScript could be used for unwanted communications.',
+                database: 'Database connection strings exposed could allow direct database access.',
+                internal: 'Internal network references could aid in reconnaissance and lateral movement attacks.',
+                cloud: 'Cloud service configurations exposed could lead to infrastructure compromise.',
+                xss: 'Potential XSS vulnerabilities identified in JavaScript code.',
+                sqli: 'SQL injection patterns detected that could lead to database compromise.',
+                pathTraversal: 'Path traversal vulnerabilities found that could allow file system access.',
+                csrf: 'CSRF tokens exposed in client-side code reducing protection effectiveness.'
+            };
+            
+            return descriptions[category] || 'Security-relevant patterns detected in JavaScript code.';
+        }
+
+        function getImpactDescription(category) {
+            const impacts = {
+                apiKeys: 'Attackers could use exposed API keys to access external services, potentially leading to data breaches, service abuse, or financial loss.',
+                credentials: 'Compromised credentials could allow unauthorized access to user accounts or administrative systems.',
+                jwt: 'Stolen JWT tokens could enable session hijacking and unauthorized access to protected resources.',
+                oauth: 'OAuth token abuse could result in unauthorized access to user data and third-party services.',
+                crypto: 'Compromised cryptographic keys could lead to data decryption and integrity violations.',
+                payment: 'Exposed payment keys could result in unauthorized transactions and financial fraud.',
+                pii: 'Exposed personal data could lead to privacy violations, identity theft, and regulatory compliance issues.',
+                database: 'Direct database access could result in complete data compromise.',
+                xss: 'Cross-site scripting could lead to session hijacking, data theft, and malicious code execution.',
+                sqli: 'SQL injection could result in database compromise, data theft, and system takeover.'
+            };
+            
+            return impacts[category] || 'Could potentially be exploited to compromise application security.';
+        }
+
+        function getRecommendation(category) {
+            const recommendations = {
+                apiKeys: 'Store API keys in environment variables or secure key management systems. Never commit keys to version control.',
+                credentials: 'Remove hardcoded credentials and implement proper authentication mechanisms with secure credential storage.',
+                jwt: 'Store JWT tokens securely using httpOnly cookies or secure storage mechanisms. Implement proper token validation.',
+                oauth: 'Move OAuth configuration to server-side and use secure token exchange mechanisms.',
+                crypto: 'Remove cryptographic keys from client-side code and implement proper key management practices.',
+                payment: 'Move payment processing to server-side and use secure payment integration methods.',
+                pii: 'Remove personal data from client-side code and implement proper data protection measures.',
+                database: 'Move database connections to server-side and implement proper connection pooling and security.',
+                xss: 'Implement proper input validation, output encoding, and Content Security Policy (CSP).',
+                sqli: 'Use parameterized queries and proper input validation to prevent SQL injection attacks.'
+            };
+            
+            return recommendations[category] || 'Review and remediate the identified security issues following best practices.';
+        }
+
+        function downloadFile(content, fileName, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            // Show success message
+            const feedback = document.createElement('div');
+            feedback.textContent = `✅ ${fileName} downloaded successfully!`;
+            feedback.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #00ff88;
+                color: #000;
+                padding: 15px 25px;
+                border-radius: 5px;
+                font-weight: bold;
+                z-index: 10000;
+                box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+            `;
+            document.body.appendChild(feedback);
+            setTimeout(() => document.body.removeChild(feedback), 3000);
+        }
+
+        function handleKeyboardShortcuts(e) {
+            if (e.ctrlKey || e.metaKey) {
+                const fileInput = document.getElementById('fileInput');
+                const analyzeBtn = document.getElementById('analyzeBtn');
+                const quickScanBtn = document.getElementById('quickScanBtn');
+                
+                switch (e.key) {
+                    case 'o':
+                        e.preventDefault();
+                        if (fileInput) fileInput.click();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        if (analyzeBtn && !analyzeBtn.disabled) {
+                            startAnalysis(false);
+                        }
+                        break;
+                    case 'q':
+                        e.preventDefault();
+                        if (quickScanBtn && !quickScanBtn.disabled) {
+                            startAnalysis(true);
+                        }
+                        break;
+                    case 'k':
+                        e.preventDefault();
+                        clearAll();
+                        break;
+                }
+            }
+        }
+
+        // Performance monitoring
+        let analysisStartTime;
+        
+        function startPerformanceMonitoring() {
+            analysisStartTime = performance.now();
+        }
+        
+        function endPerformanceMonitoring() {
+            if (analysisStartTime) {
+                const analysisTime = ((performance.now() - analysisStartTime) / 1000).toFixed(2);
+                console.log(`Analysis completed in ${analysisTime} seconds`);
+                
+                // Add to results metadata
+                if (analysisResults.metadata) {
+                    analysisResults.metadata.analysisTime = analysisTime + 's';
+                }
+            }
+        }
+
+        // Enhanced error handling
+        window.addEventListener('error', (e) => {
+            console.error('Application error:', e.error);
+            updateProgress(0, `Error: ${e.message}`);
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('Unhandled promise rejection:', e.reason);
+            updateProgress(0, `Promise error: ${e.reason}`);
+        });
+        // Add CSS animation for fadeInOut
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateY(-20px); }
+                15% { opacity: 1; transform: translateY(0); }
+                85% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(-20px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize tooltip functionality
+        function initializeTooltips() {
+            document.querySelectorAll('[data-tooltip]').forEach(element => {
+                element.addEventListener('mouseenter', showTooltip);
+                element.addEventListener('mouseleave', hideTooltip);
+            });
+        }
+
+        function showTooltip(e) {
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip-popup';
+            tooltip.textContent = e.target.dataset.tooltip;
+            tooltip.style.cssText = `
+                position: absolute;
+                background: rgba(0, 0, 0, 0.9);
+                color: #00ff88;
+                padding: 8px 12px;
+                border-radius: 6px;
+                font-size: 0.8rem;
+                white-space: nowrap;
+                z-index: 1000;
+                pointer-events: none;
+                opacity: 0;
+                transition: opacity 0.3s;
+            `;
+            
+            document.body.appendChild(tooltip);
+            
+            const rect = e.target.getBoundingClientRect();
+            tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+            tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+            
+            setTimeout(() => tooltip.style.opacity = '1', 10);
+            
+            e.target._tooltip = tooltip;
+        }
+
+        function hideTooltip(e) {
+            if (e.target._tooltip) {
+                document.body.removeChild(e.target._tooltip);
+                delete e.target._tooltip;
+            }
+        }
+    </script>
+</body>
+</html><!-- Analyze Tab -->
+        <div class="tab-content active" id="analyze">
+            <!-- File Upload Section -->
+            <div class="upload-section">
+                <h3>📁 Upload JavaScript Files</h3>
+                <input type="file" id="fileInput" class="file-input" accept=".js,.json,.ts,.jsx,.vue,.min.js" multiple />
+                <div class="batch-upload">
+                    ✨ Support for batch analysis: .js, .json, .ts, .jsx, .vue, .min.js files
+                </div>
+            </div>
+
+            <!-- Advanced Options -->
+            <div class="advanced-options">
+                <h3>⚙️ Advanced Analysis Settings</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="deobfuscate" checked>
+                        <span>🔓 Attempt deobfuscation</span>
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="deepScan" checked>
+                        <span>🕳️ Deep pattern scanning</span>
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="contextAnalysis" checked>
+                        <span>🧠 Context-aware analysis</span>
+                    </label>
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="falsePositiveFilter" checked>
+                        <span>🎯 Filter false positives</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Analysis Options -->
+            <div class="analysis-options">
+                <div class="option-group">
+                    <h3>🌐 Network & APIs <span class="severity-badge medium">MEDIUM</span></h3>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="urls" checked>
+                        <label for="urls">HTTP/HTTPS URLs</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="apis" checked>
+                        <label for="apis">API Endpoints & GraphQL</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="websockets" checked>
+                        <label for="websockets">WebSocket Connections</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="domains" checked>
+                        <label for="domains">Domain & Subdomain References</label>
+                    </div>
+                </div>
+
+                <div class="option-group">
+                    <h3>🔑 Secrets & Auth <span class="severity-badge high">HIGH</span></h3>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="apiKeys" checked>
+                        <label for="apiKeys">API Keys & Service Tokens</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="credentials" checked>
+                        <label for="credentials">Hardcoded Credentials</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="jwt" checked>
+                        <label for="jwt">JWT Tokens & Secrets</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="oauth" checked>
+                        <label for="oauth">OAuth Tokens & Client Secrets</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="crypto" checked>
+                        <label for="crypto">Cryptographic Keys & Hashes</label>
+                    </div>
+                </div>
+
+                <div class="option-group">
+                    <h3>💳 Payment & PII <span class="severity-badge high">HIGH</span></h3>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="payment" checked>
+                        <label for="payment">Payment Provider Keys</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="pii" checked>
+                        <label for="pii">Personal Identifiable Information</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="emails" checked>
+                        <label for="emails">Email Addresses</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="phones" checked>
+                        <label for="phones">Phone Numbers</label>
+                    </div>
+                </div>
+
+                <div class="option-group">
+                    <h3>🏗️ Infrastructure <span class="severity-badge medium">MEDIUM</span></h3>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="database" checked>
+                        <label for="database">Database Connection Strings</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="internal" checked>
+                        <label for="internal">Internal Network References</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="cloud" checked>
+                        <label for="cloud">Cloud Service Configurations</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="docker" checked>
+                        <label for="docker">Container & Docker References</label>
+                    </div>
+                </div>
+
+                <div class="option-group">
+                    <h3>🐛 Development Info <span class="severity-badge low">LOW</span></h3>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="debug" checked>
+                        <label for="debug">Debug & Console Statements</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="comments" checked>
+                        <label for="comments">Developer Comments & TODOs</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="sourcemaps" checked>
+                        <label for="sourcemaps">Source Maps & Build Info</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="errors" checked>
+                        <label for="errors">Error Messages & Stack Traces</label>
+                    </div>
+                </div>
+
+                <div class="option-group">
+                    <h3>🎯 Security Specific <span class="severity-badge high">HIGH</span></h3>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="xss" checked>
+                        <label for="xss">XSS Vulnerable Patterns</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="sqli" checked>
+                        <label for="sqli">SQL Injection Patterns</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="pathTraversal" checked>
+                        <label for="pathTraversal">Path Traversal Vulnerabilities</label>
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="csrf" checked>
+                        <label for="csrf">CSRF Token Leakage</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Patterns Tab -->
+        <div class="tab-content" id="patterns">
+            <div class="advanced-options">
+                <h3>🔍 Custom Regex Patterns</h3>
+                <div class="checkbox-container">
+                    <input type="checkbox" id="customEnabled">
+                    <label for="customEnabled">Enable Custom Pattern Analysis</label>
+                </div>
+                <textarea id="customPattern" class="custom-pattern" rows="6" placeholder="Enter custom regex patterns (one per line):
+Example:
+sk_live_[a-zA-Z0-9]{24,}
+pk_test_[a-zA-Z0-9]{24,}
+xoxb-[0-9]{13}-[0-9]{13}-[a-zA-Z0-9]{24}" disabled></textarea>
+                
+                <h4 style="margin-top: 20px; color: #4ecdc4;">🎯 Predefined Pattern Templates</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; margin-top: 10px;">
+                    <button class="btn secondary" onclick="addPattern('slack')">Slack Tokens</button>
+                    <button class="btn secondary" onclick="addPattern('github')">GitHub Tokens</button>
+                    <button class="btn secondary" onclick="addPattern('aws')">AWS Credentials</button>
+                    <button class="btn secondary" onclick="addPattern('discord')">Discord Tokens</button>
+                    <button class="btn secondary" onclick="addPattern('telegram')">Telegram Bot Tokens</button>
+                    <button class="btn secondary" onclick="addPattern('twitter')">Twitter API Keys</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Tab -->
+        <div class="tab-content" id="results">
+            <div class="filter-section">
+                <h3>🔍 Filter Results</h3>
+                <input type="text" id="filterInput" class="filter-input" placeholder="Filter results by keyword...">
+            </div>
+            <div id="resultsContent">
+                <div class="no-results" style="text-align: center; padding: 40px; color: #888;">
+                    📊 Analysis results will appear here after scanning files
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Tab -->
+        <div class="tab-content" id="export">
+            <div class="advanced-options">
+                <h3>📤 Export Options</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <button class="btn secondary" onclick="exportResults('json')">📄 JSON Report</button>
+                    <button class="btn secondary" onclick="exportResults('csv')">📊 CSV Data</button>
+                    <button class="btn secondary" onclick="exportResults('txt')">📝 Text Report</button>
+                    <button class="btn secondary" onclick="exportResults('html')">🌐 HTML Report</button>
+                    <button class="btn secondary" onclick="exportResults('markdown')">📋 Markdown</button>
+                    <button class="btn secondary" onclick="exportResults('xml')">🏷️ XML Report</button>
+                </div>
+                
+                <h4 style="margin-top: 25px; color: #4ecdc4;">🎯 Bug Bounty Specific Exports</h4>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 10px;">
+                    <button class="btn" onclick="exportBugBounty('hackerone')">HackerOne Report</button>
+                    <button class="btn" onclick="exportBugBounty('bugcrowd')">Bugcrowd Format</button>
+                    <button class="btn" onclick="exportBugBounty('intigriti')">Intigriti Report</button>
+                </div>
+            </div>
+        </div>
+
+        
